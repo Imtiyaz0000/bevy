@@ -8,8 +8,8 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, generate_bodies)
-        .add_systems(FixedUpdate, (interact_bodies, integrate))
-        .add_systems(Update, look_at_star)
+        .add_systems(FixedUpdate, (interact_bodies, integrate, camera_movement))
+        /* .add_systems(Update, look_at_star)*/
         .run();
 }
 
@@ -24,6 +24,9 @@ struct Acceleration(Vec3);
 struct LastPos(Vec3);
 #[derive(Component)]
 struct Star;
+
+#[derive(Component)]
+struct ProCamera;
 
 #[derive(Bundle, Default)]
 struct BodyBundle {
@@ -117,10 +120,13 @@ fn generate_bodies(
                 ..default()
             });
         });
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 10.5, -30.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
+    commands.spawn((
+        Camera3dBundle {
+            transform: Transform::from_xyz(0.0, 10.5, -30.0).looking_at(Vec3::ZERO, Vec3::Y),
+            ..default()
+        },
+        ProCamera,
+    ));
 }
 
 fn interact_bodies(mut query: Query<(&Mass, &GlobalTransform, &mut Acceleration)>) {
@@ -162,4 +168,36 @@ fn look_at_star(
         .rotation
         .lerp(camera.rotation, 0.1);
     camera.rotation = new_rotation;
+}
+
+fn camera_movement(
+    mut query: Query<&mut Transform, With<ProCamera>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
+) {
+    let mut transform = query.single_mut();
+
+    if keyboard_input.pressed(KeyCode::KeyW) {
+        transform.translation.z += 10f32 * time.delta_seconds();
+    }
+
+    if keyboard_input.pressed(KeyCode::KeyS) {
+        transform.translation.z -= 10f32 * time.delta_seconds();
+    }
+
+    if keyboard_input.pressed(KeyCode::KeyE) {
+        transform.translation.y += 10f32 * time.delta_seconds();
+    }
+
+    if keyboard_input.pressed(KeyCode::KeyQ) {
+        transform.translation.y -= 10f32 * time.delta_seconds();
+    }
+
+    if keyboard_input.pressed(KeyCode::KeyA) {
+        transform.translation.x += 10f32 * time.delta_seconds();
+    }
+
+    if keyboard_input.pressed(KeyCode::KeyD) {
+        transform.translation.x -= 10f32 * time.delta_seconds();
+    }
 }
